@@ -93,8 +93,7 @@ public class ZeebeWorkers {
                         // Do stuff here
                         variables = job.getVariablesAsMap();
 
-                        JSONObject channelRequest = objectMapper.readValue(
-                                (String) variables.get("channelRequest"), JSONObject.class);
+                        JSONObject channelRequest = new JSONObject((String) variables.get("channelRequest"));
                         String transactionId = (String) variables.get(TRANSACTION_ID);
 
                         ex.setProperty(CHANNEL_REQUEST, channelRequest);
