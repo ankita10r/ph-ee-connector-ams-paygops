@@ -61,7 +61,7 @@ public class ZeebeWorkers {
 
                         JSONObject channelRequest = new JSONObject((String) variables.get("channelRequest"));
                         String transactionId = (String) variables.get(TRANSACTION_ID);
-
+                        logger.info("Channel Request :" + ex.getProperty(CHANNEL_REQUEST));
                         ex.setProperty(CHANNEL_REQUEST, channelRequest);
                         ex.setProperty(TRANSACTION_ID, transactionId);
 
@@ -98,6 +98,7 @@ public class ZeebeWorkers {
                         String transactionId = (String) variables.get(TRANSACTION_ID);
 
                         ex.setProperty(CHANNEL_REQUEST, channelRequest);
+                        logger.info("Channel Request :" + ex.getProperty(CHANNEL_REQUEST));
                         ex.setProperty(TRANSACTION_ID, transactionId);
 
                         producerTemplate.send("direct:transfer-settlement", ex);
