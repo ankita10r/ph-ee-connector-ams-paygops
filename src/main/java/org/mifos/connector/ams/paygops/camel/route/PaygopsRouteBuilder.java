@@ -90,6 +90,7 @@ public class PaygopsRouteBuilder extends RouteBuilder {
                 .setHeader("Content-Type", constant("application/json"))
                 .setBody(exchange -> {
                     JSONObject channelRequest = (JSONObject) exchange.getProperty(CHANNEL_REQUEST);
+                    logger.info(exchange.getProperty(CHANNEL_REQUEST).toString());
                     String transactionId = exchange.getProperty(TRANSACTION_ID, String.class);
                     PaygopsRequestDTO verificationRequestDTO = getPaygopsDtoFromChannelRequest(channelRequest,
                             transactionId);
@@ -142,7 +143,7 @@ public class PaygopsRouteBuilder extends RouteBuilder {
 
                     JSONObject channelRequest = (JSONObject) exchange.getProperty(CHANNEL_REQUEST);
                     String transactionId = exchange.getProperty(TRANSACTION_ID, String.class);
-
+                    logger.info(exchange.getProperty(CHANNEL_REQUEST).toString());
                     PaygopsRequestDTO confirmationRequestDTO = getPaygopsDtoFromChannelRequest(channelRequest,
                             transactionId);
 
