@@ -83,7 +83,7 @@ public class ZeebeWorkers {
                 .open();
 
         zeebeClient.newWorker()
-                .jobType("transfer-settlement")
+                .jobType("transfer-settlement-paygops")
                 .handler((client, job) -> {
                     logWorkerDetails(job);
 
@@ -113,7 +113,7 @@ public class ZeebeWorkers {
                             .variables(variables)
                             .send();
                 })
-                .name("transfer-settlement")
+                .name("transfer-settlement-paygops")
                 .maxJobsActive(workerMaxJobs)
                 .open();
 

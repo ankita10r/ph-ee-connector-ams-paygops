@@ -34,3 +34,5 @@ management:
         enabled: true
       readiness:
         enabled: true
+
+
