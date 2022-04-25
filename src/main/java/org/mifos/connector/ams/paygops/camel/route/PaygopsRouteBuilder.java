@@ -1,11 +1,13 @@
 package org.mifos.connector.ams.paygops.camel.route;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.model.dataformat.JsonLibrary;
 import org.json.JSONObject;
 import org.mifos.connector.ams.paygops.paygopsDTO.PaygopsRequestDTO;
+import org.mifos.connector.ams.paygops.paygopsDTO.PaygopsResponseDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -61,10 +63,23 @@ public class PaygopsRouteBuilder extends RouteBuilder {
                 .to("direct:transfer-validation")
                 .choice()
                 .when(header("CamelHttpResponseCode").isEqualTo("200"))
-                .log(LoggingLevel.INFO, "Paygops Validation successful")
+                .log(LoggingLevel.INFO, "Paygops Validation Response Received")
                 .process(exchange -> {
                     // processing success case
-                    exchange.setProperty(PARTY_LOOKUP_FAILED, false);
+                    String body = exchange.getIn().getBody(String.class);
+                    ObjectMapper mapper = new ObjectMapper();
+                    PaygopsResponseDto result = mapper.readValue(body, PaygopsResponseDto.class);
+                    logger.info("body : "+ result);
+                    //JSONObject jsonObject = new JSONObject(body);
+                    if (result.getReconciled()){
+                            logger.info("Paygops Validation Successful");
+                            exchange.setProperty(PARTY_LOOKUP_FAILED, false);
+                        }
+                        else {
+                        logger.info("Paygops Validation Unsuccessful, Reconciled field returned false");
+                        exchange.setProperty(PARTY_LOOKUP_FAILED, true);
+                    }
+
                 })
                 .otherwise()
                 .log(LoggingLevel.ERROR, "Paygops Validation unsuccessful")
@@ -89,9 +104,30 @@ public class PaygopsRouteBuilder extends RouteBuilder {
                 .setHeader("Authorization", simple("Bearer "+ accessToken))
                 .setHeader("Content-Type", constant("application/json"))
                 .setBody(exchange -> {
-                    JSONObject channelRequest = (JSONObject) exchange.getProperty(CHANNEL_REQUEST);
-                    logger.info(exchange.getProperty(CHANNEL_REQUEST).toString());
-                    String transactionId = exchange.getProperty(TRANSACTION_ID, String.class);
+                    JSONObject channelRequest = new JSONObject("{\n" +
+                            "    \"payer\": [\n" +
+                            "        {\n" +
+                            "            \"key\": \"MSISDN\",\n" +
+                            "            \"value\": \"+25512345678\"\n" +
+                            "        },\n" +
+                            "        {\n" +
+                            "            \"key\": \"FOUNDATIONALID\",\n" +
+                            "            \"value\": \"abd123\"\n" +
+                            "        }\n" +
+                            "    ],\n" +
+                            "    \"amount\": {\n" +
+                            "        \"amount\": \"123\",\n" +
+                            "        \"currency\": \"KES\"\n" +
+                            "    },\n" +
+                            "    \"transactionType\": {\n" +
+                            "        \"scenario\": \"MPESA\",\n" +
+                            "        \"subScenario\": \"BUYGOODS\",\n" +
+                            "        \"initiator\": \"PAYEE\",\n" +
+                            "        \"initiatorType\": \"BUSINESS\"\n" +
+                            "    }\n" +
+                            "}");
+                    //logger.info(exchange.getProperty(CHANNEL_REQUEST).toString());
+                    String transactionId = "123";
                     PaygopsRequestDTO verificationRequestDTO = getPaygopsDtoFromChannelRequest(channelRequest,
                             transactionId);
 
@@ -108,13 +144,23 @@ public class PaygopsRouteBuilder extends RouteBuilder {
                 .to("direct:transfer-settlement")
                 .choice()
                 .when(header("CamelHttpResponseCode").isEqualTo("200"))
-                .log(LoggingLevel.INFO, "Settlement successful")
+                .log(LoggingLevel.INFO, "Settlement Response Received")
                 .process(exchange -> {
                     // processing success case
                     String body = exchange.getIn().getBody(String.class);
                     JSONObject jsonObject = new JSONObject(body);
+                    if (jsonObject.has("reconciled")){
+                        String responseValid = jsonObject.getString("reconciled");
+                        if(responseValid.equalsIgnoreCase("true")){
+                            logger.info("Paygops Verification Successful");
+                            exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, false);
+                        }
+                        else {
+                            logger.info("Paygops Verification Unsuccessful, Reconciled field returned false");
+                            exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, true);
+                        }
+                    }
                     logger.info(jsonObject.toString());
-                        exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, false);
 
                 })
                 .otherwise()
@@ -170,10 +216,10 @@ public class PaygopsRouteBuilder extends RouteBuilder {
     private PaygopsRequestDTO getPaygopsDtoFromChannelRequest(JSONObject channelRequest, String transactionId) {
         PaygopsRequestDTO verificationRequestDTO = new PaygopsRequestDTO();
 
-        String phoneNumber = channelRequest.getJSONObject("payer")
-                .getJSONObject("partyIdInfo").getString("partyIdentifier");
-        String memoId = channelRequest.getJSONObject("payee")
-                .getJSONObject("partyIdInfo").getString("partyIdentifier"); // instead of account id this value corresponds to national id
+        String phoneNumber = channelRequest.getJSONArray("payer")
+                .getJSONObject(0).getString("value");
+        String memoId =  channelRequest.getJSONArray("payer")
+                .getJSONObject(1).getString("value");// instead of account id this value corresponds to national id
         JSONObject amountJson = channelRequest.getJSONObject("amount");
         String operatorName = "MPESA";
 
