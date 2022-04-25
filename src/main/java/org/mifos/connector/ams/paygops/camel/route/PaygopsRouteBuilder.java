@@ -128,19 +128,18 @@ public class PaygopsRouteBuilder extends RouteBuilder {
                 .process(exchange -> {
                     // processing success case
                     String body = exchange.getIn().getBody(String.class);
-                    JSONObject jsonObject = new JSONObject(body);
-                    if (jsonObject.has("reconciled")){
-                        String responseValid = jsonObject.getString("reconciled");
-                        if(responseValid.equalsIgnoreCase("true")){
-                            logger.info("Paygops Verification Successful");
-                            exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, false);
-                        }
-                        else {
-                            logger.info("Paygops Verification Unsuccessful, Reconciled field returned false");
-                            exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, true);
-                        }
+                    ObjectMapper mapper = new ObjectMapper();
+                    PaygopsResponseDto result = mapper.readValue(body, PaygopsResponseDto.class);
+                    logger.info("body : "+ result);
+                    //JSONObject jsonObject = new JSONObject(body);
+                    if (result.getReconciled()){
+                        logger.info("Paygops Validation Successful");
+                        exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, false);
                     }
-                    logger.info(jsonObject.toString());
+                    else {
+                        logger.info("Paygops Validation Unsuccessful, Reconciled field returned false");
+                        exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, true);
+                    }
 
                 })
                 .otherwise()
