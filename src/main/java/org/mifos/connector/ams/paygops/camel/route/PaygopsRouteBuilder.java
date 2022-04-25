@@ -128,18 +128,19 @@ public class PaygopsRouteBuilder extends RouteBuilder {
                 .process(exchange -> {
                     // processing success case
                     String body = exchange.getIn().getBody(String.class);
-                    ObjectMapper mapper = new ObjectMapper();
-                    PaygopsResponseDto result = mapper.readValue(body, PaygopsResponseDto.class);
-                    logger.info("body : "+ result);
-                    //JSONObject jsonObject = new JSONObject(body);
-                    if (result.getReconciled()){
-                        logger.info("Paygops Validation Successful");
-                        exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, false);
+                    JSONObject jsonObject = new JSONObject(body);
+                    if (jsonObject.has("reconciled")){
+                        String responseValid = jsonObject.getString("reconciled");
+                        if(responseValid.equalsIgnoreCase("true")){
+                            logger.info("Paygops Verification Successful");
+                            exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, false);
+                        }
+                        else {
+                            logger.info("Paygops Verification Unsuccessful, Reconciled field returned false");
+                            exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, true);
+                        }
                     }
-                    else {
-                        logger.info("Paygops Validation Unsuccessful, Reconciled field returned false");
-                        exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, true);
-                    }
+                    logger.info(jsonObject.toString());
 
                 })
                 .otherwise()
@@ -195,10 +196,10 @@ public class PaygopsRouteBuilder extends RouteBuilder {
     private PaygopsRequestDTO getPaygopsDtoFromChannelRequest(JSONObject channelRequest, String transactionId) {
         PaygopsRequestDTO verificationRequestDTO = new PaygopsRequestDTO();
 
-        String phoneNumber = channelRequest.getJSONObject("payer")
-                .getJSONObject("partyIdInfo").getString("partyIdentifier");
-        String memoId = channelRequest.getJSONObject("payee")
-                .getJSONObject("partyIdInfo").getString("partyIdentifier"); // instead of account id this value corresponds to national id
+        String phoneNumber = channelRequest.getJSONArray("payer")
+                .getJSONObject(0).getString("value");
+        String memoId =  channelRequest.getJSONArray("payer")
+                .getJSONObject(1).getString("value");// instead of account id this value corresponds to national id
         JSONObject amountJson = channelRequest.getJSONObject("amount");
         String operatorName = "MPESA";
 
