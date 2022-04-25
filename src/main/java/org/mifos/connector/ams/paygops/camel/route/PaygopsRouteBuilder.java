@@ -104,30 +104,10 @@ public class PaygopsRouteBuilder extends RouteBuilder {
                 .setHeader("Authorization", simple("Bearer "+ accessToken))
                 .setHeader("Content-Type", constant("application/json"))
                 .setBody(exchange -> {
-                    JSONObject channelRequest = new JSONObject("{\n" +
-                            "    \"payer\": [\n" +
-                            "        {\n" +
-                            "            \"key\": \"MSISDN\",\n" +
-                            "            \"value\": \"+25512345678\"\n" +
-                            "        },\n" +
-                            "        {\n" +
-                            "            \"key\": \"FOUNDATIONALID\",\n" +
-                            "            \"value\": \"abd123\"\n" +
-                            "        }\n" +
-                            "    ],\n" +
-                            "    \"amount\": {\n" +
-                            "        \"amount\": \"123\",\n" +
-                            "        \"currency\": \"KES\"\n" +
-                            "    },\n" +
-                            "    \"transactionType\": {\n" +
-                            "        \"scenario\": \"MPESA\",\n" +
-                            "        \"subScenario\": \"BUYGOODS\",\n" +
-                            "        \"initiator\": \"PAYEE\",\n" +
-                            "        \"initiatorType\": \"BUSINESS\"\n" +
-                            "    }\n" +
-                            "}");
-                    //logger.info(exchange.getProperty(CHANNEL_REQUEST).toString());
-                    String transactionId = "123";
+                    JSONObject channelRequest = (JSONObject) exchange.getProperty(CHANNEL_REQUEST);
+                    String transactionId = exchange.getProperty(TRANSACTION_ID, String.class);
+                    logger.info(exchange.getProperty(CHANNEL_REQUEST).toString());
+
                     PaygopsRequestDTO verificationRequestDTO = getPaygopsDtoFromChannelRequest(channelRequest,
                             transactionId);
 
