@@ -127,21 +127,11 @@ public class PaygopsRouteBuilder extends RouteBuilder {
                 .log(LoggingLevel.INFO, "Settlement Response Received")
                 .process(exchange -> {
                     // processing success case
+                    // processing success case
                     String body = exchange.getIn().getBody(String.class);
                     JSONObject jsonObject = new JSONObject(body);
-                    if (jsonObject.has("reconciled")){
-                        String responseValid = jsonObject.getString("reconciled");
-                        if(responseValid.equalsIgnoreCase("true")){
-                            logger.info("Paygops Verification Successful");
-                            exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, false);
-                        }
-                        else {
-                            logger.info("Paygops Verification Unsuccessful, Reconciled field returned false");
-                            exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, true);
-                        }
-                    }
                     logger.info(jsonObject.toString());
-
+                    exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, false);
                 })
                 .otherwise()
                 .log(LoggingLevel.ERROR, "Settlement unsuccessful")
