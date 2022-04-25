@@ -195,10 +195,10 @@ public class PaygopsRouteBuilder extends RouteBuilder {
     private PaygopsRequestDTO getPaygopsDtoFromChannelRequest(JSONObject channelRequest, String transactionId) {
         PaygopsRequestDTO verificationRequestDTO = new PaygopsRequestDTO();
 
-        String phoneNumber = channelRequest.getJSONArray("payer")
-                .getJSONObject(0).getString("value");
-        String memoId =  channelRequest.getJSONArray("payer")
-                .getJSONObject(1).getString("value");// instead of account id this value corresponds to national id
+        String phoneNumber = channelRequest.getJSONObject("payer")
+                .getJSONObject("partyIdInfo").getString("partyIdentifier");
+        String memoId = channelRequest.getJSONObject("payee")
+                .getJSONObject("partyIdInfo").getString("partyIdentifier"); // instead of account id this value corresponds to national id
         JSONObject amountJson = channelRequest.getJSONObject("amount");
         String operatorName = "MPESA";
 
