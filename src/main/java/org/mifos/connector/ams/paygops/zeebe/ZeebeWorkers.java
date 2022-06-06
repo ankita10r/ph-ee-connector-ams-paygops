@@ -69,8 +69,12 @@ public class ZeebeWorkers {
 
                         boolean isPartyLookUpFailed = ex.getProperty(PARTY_LOOKUP_FAILED, boolean.class);
                         if (isPartyLookUpFailed) {
+                            logger.info("Partylookup Failed is true , Error Info "
+                                    + ex.getProperty(ERROR_INFORMATION,String.class)+
+                                    " ERr Code" + ex.getProperty(ERROR_CODE, String.class)+ "Error Desc"
+                                    + ex.getProperty(ERROR_DESCRIPTION, String.class) );
                             variables.put(PARTY_LOOKUP_FAILED, true);
-                            variables.put(ERROR_INFORMATION, ex.getProperty(ERROR_INFORMATION));
+                            variables.put(ERROR_INFORMATION, ex.getProperty(ERROR_INFORMATION,String.class));
                             variables.put(ERROR_CODE, ex.getProperty(ERROR_CODE, String.class));
                             variables.put(ERROR_DESCRIPTION, ex.getProperty(ERROR_DESCRIPTION, String.class));
                         } else {
