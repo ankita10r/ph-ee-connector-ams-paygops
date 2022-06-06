@@ -17,8 +17,8 @@ import javax.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.mifos.connector.ams.paygops.camel.config.CamelProperties.*;
 import static org.mifos.connector.ams.paygops.camel.config.CamelProperties.AMS_REQUEST;
-import static org.mifos.connector.ams.paygops.camel.config.CamelProperties.CHANNEL_REQUEST;
 import static org.mifos.connector.ams.paygops.zeebe.ZeebeVariables.*;
 
 @Component
@@ -68,7 +68,15 @@ public class ZeebeWorkers {
                         producerTemplate.send("direct:transfer-validation-base", ex);
 
                         boolean isPartyLookUpFailed = ex.getProperty(PARTY_LOOKUP_FAILED, boolean.class);
-                        variables.put(PARTY_LOOKUP_FAILED, isPartyLookUpFailed);
+                        if (isPartyLookUpFailed) {
+                            variables.put(PARTY_LOOKUP_FAILED, true);
+                            variables.put(ERROR_INFORMATION, ex.getProperty(ERROR_INFORMATION));
+                            variables.put(ERROR_CODE, ex.getProperty(ERROR_CODE, String.class));
+                            variables.put(ERROR_DESCRIPTION, ex.getProperty(ERROR_DESCRIPTION, String.class));
+                        } else {
+                            variables.put(PARTY_LOOKUP_FAILED, false);
+                        }
+
                     } else {
                         variables = new HashMap<>();
                         variables.put(PARTY_LOOKUP_FAILED, false);
@@ -95,15 +103,28 @@ public class ZeebeWorkers {
 
                         JSONObject channelRequest = new JSONObject((String) variables.get("channelRequest"));
                         String transactionId = (String) variables.get(TRANSACTION_ID);
-
+                        if(variables.containsKey(SERVER_TRANSACTION_RECEIPT_NUMBER)){
+                            ex.setProperty(TRANSACTION_ID, variables.get(SERVER_TRANSACTION_RECEIPT_NUMBER));
+                        }
+                        else{
+                            ex.setProperty(TRANSACTION_ID, transactionId);
+                        }
                         ex.setProperty(CHANNEL_REQUEST, channelRequest);
                         logger.info("Channel Request :" + ex.getProperty(CHANNEL_REQUEST));
-                        ex.setProperty(TRANSACTION_ID, transactionId);
+
 
                         producerTemplate.send("direct:transfer-settlement", ex);
                         boolean isSettlementFailed = ex.getProperty(TRANSFER_SETTLEMENT_FAILED, boolean.class);
-                        variables.put(ZeebeVariables.AMS_REQUEST,ex.getProperty(AMS_REQUEST));
-                        variables.put(TRANSFER_SETTLEMENT_FAILED, isSettlementFailed);
+                        if (isSettlementFailed) {
+                            variables.put(TRANSFER_SETTLEMENT_FAILED, true);
+                            variables.put(ERROR_INFORMATION, ex.getProperty(ERROR_INFORMATION));
+                            variables.put(ERROR_CODE, ex.getProperty(ERROR_CODE, String.class));
+                            variables.put(ERROR_DESCRIPTION, ex.getProperty(ERROR_DESCRIPTION, String.class));
+                        } else {
+                            variables.put(ZeebeVariables.AMS_REQUEST,ex.getProperty(AMS_REQUEST));
+                            variables.put(TRANSFER_SETTLEMENT_FAILED, false);
+                        }
+
                     } else {
                         variables = new HashMap<>();
                         variables.put(TRANSFER_SETTLEMENT_FAILED, false);
