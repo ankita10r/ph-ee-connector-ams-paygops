@@ -52,21 +52,16 @@ public class ZeebeWorkers {
                 .jobType("transfer-validation-paygops")
                 .handler((client, job) -> {
                     logWorkerDetails(job);
-
                     Map<String, Object> variables;
                     if (isAmsLocalEnabled) {
                         Exchange ex = new DefaultExchange(camelContext);
-                        // Do stuff here
                         variables = job.getVariablesAsMap();
-
                         JSONObject channelRequest = new JSONObject((String) variables.get("channelRequest"));
                         String transactionId = (String) variables.get(TRANSACTION_ID);
                         logger.info("Channel Request :" + ex.getProperty(CHANNEL_REQUEST));
                         ex.setProperty(CHANNEL_REQUEST, channelRequest);
                         ex.setProperty(TRANSACTION_ID, transactionId);
-
                         producerTemplate.send("direct:transfer-validation-base", ex);
-
                         boolean isPartyLookUpFailed = ex.getProperty(PARTY_LOOKUP_FAILED, boolean.class);
                         logger.info("Partylookup Failed is "
                                 + isPartyLookUpFailed + ", Error Info "
@@ -89,7 +84,8 @@ public class ZeebeWorkers {
 
                     zeebeClient.newCompleteCommand(job.getKey())
                             .variables(variables)
-                            .send();
+                            .send()
+                            .join();
                 })
                 .name("transfer-validation-paygops")
                 .maxJobsActive(workerMaxJobs)
@@ -99,13 +95,11 @@ public class ZeebeWorkers {
                 .jobType("transfer-settlement-paygops")
                 .handler((client, job) -> {
                     logWorkerDetails(job);
-
                     Map<String, Object> variables;
                     if (isAmsLocalEnabled) {
                         Exchange ex = new DefaultExchange(camelContext);
                         // Do stuff here
                         variables = job.getVariablesAsMap();
-
                         JSONObject channelRequest = new JSONObject((String) variables.get("channelRequest"));
                         String transactionId = (String) variables.get(TRANSACTION_ID);
                         if(variables.containsKey(SERVER_TRANSACTION_RECEIPT_NUMBER)){
@@ -116,8 +110,6 @@ public class ZeebeWorkers {
                         }
                         ex.setProperty(CHANNEL_REQUEST, channelRequest);
                         logger.info("Channel Request :" + ex.getProperty(CHANNEL_REQUEST));
-
-
                         producerTemplate.send("direct:transfer-settlement", ex);
                         boolean isSettlementFailed = ex.getProperty(TRANSFER_SETTLEMENT_FAILED, boolean.class);
                         if (isSettlementFailed) {
