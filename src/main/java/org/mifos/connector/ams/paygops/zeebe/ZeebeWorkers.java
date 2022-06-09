@@ -17,8 +17,8 @@ import javax.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.mifos.connector.ams.paygops.camel.config.CamelProperties.*;
 import static org.mifos.connector.ams.paygops.camel.config.CamelProperties.AMS_REQUEST;
-import static org.mifos.connector.ams.paygops.camel.config.CamelProperties.CHANNEL_REQUEST;
 import static org.mifos.connector.ams.paygops.zeebe.ZeebeVariables.*;
 
 @Component
@@ -52,23 +52,31 @@ public class ZeebeWorkers {
                 .jobType("transfer-validation-paygops")
                 .handler((client, job) -> {
                     logWorkerDetails(job);
-
                     Map<String, Object> variables;
                     if (isAmsLocalEnabled) {
                         Exchange ex = new DefaultExchange(camelContext);
-                        // Do stuff here
                         variables = job.getVariablesAsMap();
-
                         JSONObject channelRequest = new JSONObject((String) variables.get("channelRequest"));
                         String transactionId = (String) variables.get(TRANSACTION_ID);
                         logger.info("Channel Request :" + ex.getProperty(CHANNEL_REQUEST));
                         ex.setProperty(CHANNEL_REQUEST, channelRequest);
                         ex.setProperty(TRANSACTION_ID, transactionId);
-
                         producerTemplate.send("direct:transfer-validation-base", ex);
-
                         boolean isPartyLookUpFailed = ex.getProperty(PARTY_LOOKUP_FAILED, boolean.class);
-                        variables.put(PARTY_LOOKUP_FAILED, isPartyLookUpFailed);
+                        logger.info("Partylookup Failed is "
+                                + isPartyLookUpFailed + ", Error Info "
+                                + ex.getProperty(ERROR_INFORMATION,String.class)+
+                                " ERr Code" + ex.getProperty(ERROR_CODE, String.class)+ "Error Desc"
+                                + ex.getProperty(ERROR_DESCRIPTION, String.class) );
+                        if(isPartyLookUpFailed) {
+                            variables.put(PARTY_LOOKUP_FAILED, true);
+                            variables.put(ERROR_INFORMATION, ex.getProperty(ERROR_INFORMATION,String.class));
+                            variables.put(ERROR_CODE, ex.getProperty(ERROR_CODE, String.class));
+                            variables.put(ERROR_DESCRIPTION, ex.getProperty(ERROR_DESCRIPTION, String.class));
+                        } else {
+                            variables.put(PARTY_LOOKUP_FAILED, false);
+                        }
+
                     } else {
                         variables = new HashMap<>();
                         variables.put(PARTY_LOOKUP_FAILED, false);
@@ -76,7 +84,8 @@ public class ZeebeWorkers {
 
                     zeebeClient.newCompleteCommand(job.getKey())
                             .variables(variables)
-                            .send();
+                            .send()
+                            .join();
                 })
                 .name("transfer-validation-paygops")
                 .maxJobsActive(workerMaxJobs)
@@ -86,13 +95,11 @@ public class ZeebeWorkers {
                 .jobType("transfer-settlement-paygops")
                 .handler((client, job) -> {
                     logWorkerDetails(job);
-
                     Map<String, Object> variables;
                     if (isAmsLocalEnabled) {
                         Exchange ex = new DefaultExchange(camelContext);
                         // Do stuff here
                         variables = job.getVariablesAsMap();
-
                         JSONObject channelRequest = new JSONObject((String) variables.get("channelRequest"));
                         String transactionId = (String) variables.get(TRANSACTION_ID);
                         ex.setProperty(TRANSACTION_ID, variables.getOrDefault(SERVER_TRANSACTION_RECEIPT_NUMBER, transactionId));
@@ -100,8 +107,16 @@ public class ZeebeWorkers {
                         logger.info("Channel Request :" + ex.getProperty(CHANNEL_REQUEST));
                         producerTemplate.send("direct:transfer-settlement", ex);
                         boolean isSettlementFailed = ex.getProperty(TRANSFER_SETTLEMENT_FAILED, boolean.class);
-                        variables.put(ZeebeVariables.AMS_REQUEST,ex.getProperty(AMS_REQUEST));
-                        variables.put(TRANSFER_SETTLEMENT_FAILED, isSettlementFailed);
+                        if (isSettlementFailed) {
+                            variables.put(TRANSFER_SETTLEMENT_FAILED, true);
+                            variables.put(ERROR_INFORMATION, ex.getProperty(ERROR_INFORMATION));
+                            variables.put(ERROR_CODE, ex.getProperty(ERROR_CODE, String.class));
+                            variables.put(ERROR_DESCRIPTION, ex.getProperty(ERROR_DESCRIPTION, String.class));
+                        } else {
+                            variables.put(ZeebeVariables.AMS_REQUEST,ex.getProperty(AMS_REQUEST));
+                            variables.put(TRANSFER_SETTLEMENT_FAILED, false);
+                        }
+
                     } else {
                         variables = new HashMap<>();
                         variables.put(TRANSFER_SETTLEMENT_FAILED, false);
