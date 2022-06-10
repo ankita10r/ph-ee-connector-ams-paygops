@@ -78,15 +78,15 @@ public class PaygopsRouteBuilder extends RouteBuilder {
                         }
                         else {
                             logger.info("Paygops Validation Unsuccessful, Reconciled field returned false");
-                            exchange.setProperty(ERROR_INFORMATION, result);
-                            exchange.setProperty(ERROR_DESCRIPTION, "Reconciled field returned false");
+                            exchange.setProperty(ERROR_DESCRIPTION, result);
+                            exchange.setProperty(ERROR_INFORMATION, "Reconciled field returned false");
                             exchange.setProperty(PARTY_LOOKUP_FAILED, true);
                         }
                     }
                     catch (Exception e){
                         logger.info("Body data could not be parsed, setting validation as failed");
-                        exchange.setProperty(ERROR_INFORMATION, exchange.getIn().getBody(String.class));
-                        exchange.setProperty(ERROR_DESCRIPTION, "Body data could not be parsed,setting validation as failed");
+                        exchange.setProperty(ERROR_DESCRIPTION, exchange.getIn().getBody(String.class));
+                        exchange.setProperty(ERROR_INFORMATION, "Body data could not be parsed,setting validation as failed");
                         exchange.setProperty(PARTY_LOOKUP_FAILED, true);
                     }
 
@@ -146,8 +146,8 @@ public class PaygopsRouteBuilder extends RouteBuilder {
                     }
                     catch (Exception e){
                         logger.info("Body data could not be parsed, seeting settlement as failed");
-                        exchange.setProperty(ERROR_INFORMATION, exchange.getIn().getBody(String.class));
-                        exchange.setProperty(ERROR_DESCRIPTION, "Body data could not be parsed,setting confirmation as failed");
+                        exchange.setProperty(ERROR_DESCRIPTION, exchange.getIn().getBody(String.class));
+                        exchange.setProperty(ERROR_INFORMATION, "Body data could not be parsed,setting confirmation as failed");
                         exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, true);
                     }
 
