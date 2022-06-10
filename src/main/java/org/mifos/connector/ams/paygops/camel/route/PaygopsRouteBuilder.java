@@ -66,19 +66,30 @@ public class PaygopsRouteBuilder extends RouteBuilder {
                 .log(LoggingLevel.INFO, "Paygops Validation Response Received")
                 .process(exchange -> {
                     // processing success case
-                    String body = exchange.getIn().getBody(String.class);
-                    ObjectMapper mapper = new ObjectMapper();
-                    PaygopsResponseDto result = mapper.readValue(body, PaygopsResponseDto.class);
-                    logger.info("body : "+ result);
-                    //JSONObject jsonObject = new JSONObject(body);
-                    if (result.getReconciled()){
+                    try {
+                        String body = exchange.getIn().getBody(String.class);
+                        ObjectMapper mapper = new ObjectMapper();
+                        PaygopsResponseDto result = mapper.readValue(body, PaygopsResponseDto.class);
+                        logger.info("body : "+ result);
+                        //JSONObject jsonObject = new JSONObject(body);
+                        if (result.getReconciled()){
                             logger.info("Paygops Validation Successful");
                             exchange.setProperty(PARTY_LOOKUP_FAILED, false);
                         }
                         else {
-                        logger.info("Paygops Validation Unsuccessful, Reconciled field returned false");
+                            logger.info("Paygops Validation Unsuccessful, Reconciled field returned false");
+                            exchange.setProperty(ERROR_DESCRIPTION, result);
+                            exchange.setProperty(ERROR_INFORMATION, "Reconciled field returned false");
+                            exchange.setProperty(PARTY_LOOKUP_FAILED, true);
+                        }
+                    }
+                    catch (Exception e){
+                        logger.info("Body data could not be parsed, setting validation as failed");
+                        exchange.setProperty(ERROR_DESCRIPTION, exchange.getIn().getBody(String.class));
+                        exchange.setProperty(ERROR_INFORMATION, "Body data could not be parsed,setting validation as failed");
                         exchange.setProperty(PARTY_LOOKUP_FAILED, true);
                     }
+
 
                 })
                 .otherwise()
@@ -127,10 +138,21 @@ public class PaygopsRouteBuilder extends RouteBuilder {
                 .log(LoggingLevel.INFO, "Settlement Response Received")
                 .process(exchange -> {
                     // processing success case
-                    String body = exchange.getIn().getBody(String.class);
-                    JSONObject jsonObject = new JSONObject(body);
-                    logger.info(jsonObject.toString());
-                    exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, false);
+                    try {
+                        String body = exchange.getIn().getBody(String.class);
+                        JSONObject jsonObject = new JSONObject(body);
+                        logger.info(jsonObject.toString());
+                        exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, false);
+                    }
+                    catch (Exception e){
+                        logger.info("Body data could not be parsed, setting settlement as failed");
+                        exchange.setProperty(ERROR_DESCRIPTION, exchange.getIn().getBody(String.class));
+                        exchange.setProperty(ERROR_INFORMATION, "Body data could not be parsed,setting confirmation as failed");
+                        exchange.setProperty(TRANSFER_SETTLEMENT_FAILED, true);
+                    }
+
+
+
                 })
                 .otherwise()
                 .log(LoggingLevel.ERROR, "Settlement unsuccessful")
