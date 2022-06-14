@@ -71,9 +71,7 @@ public class ZeebeWorkers {
                         boolean isPartyLookUpFailed = ex.getProperty(PARTY_LOOKUP_FAILED, boolean.class);
                         if(isPartyLookUpFailed) {
                             variables.put(PARTY_LOOKUP_FAILED, true);
-                            variables.put(ERROR_INFORMATION, ex.getProperty(ERROR_INFORMATION,String.class));
-                            variables.put(ERROR_CODE, ex.getProperty(ERROR_CODE, String.class));
-                            variables.put(ERROR_DESCRIPTION, ex.getProperty(ERROR_DESCRIPTION, String.class));
+                            setErrorInfo(variables,ex);
                         } else {
                             variables.put(PARTY_LOOKUP_FAILED, false);
                         }
@@ -112,9 +110,8 @@ public class ZeebeWorkers {
                         boolean isSettlementFailed = ex.getProperty(TRANSFER_SETTLEMENT_FAILED, boolean.class);
                         if (isSettlementFailed) {
                             variables.put(TRANSFER_SETTLEMENT_FAILED, true);
-                            variables.put(ERROR_INFORMATION, ex.getProperty(ERROR_INFORMATION));
-                            variables.put(ERROR_CODE, ex.getProperty(ERROR_CODE, String.class));
-                            variables.put(ERROR_DESCRIPTION, ex.getProperty(ERROR_DESCRIPTION, String.class));
+                            setErrorInfo(variables,ex);
+
                         } else {
                             variables.put(ZeebeVariables.AMS_REQUEST,ex.getProperty(AMS_REQUEST));
                             variables.put(TRANSFER_SETTLEMENT_FAILED, false);
@@ -146,6 +143,12 @@ public class ZeebeWorkers {
         jsonJob.put("workflowKey", job.getProcessDefinitionKey());
         jsonJob.put("workflowInstanceKey", job.getProcessInstanceKey());
         logger.info("Job started: {}", jsonJob.toString(4));
+    }
+
+    private void setErrorInfo(Map<String, Object> variables,Exchange ex ){
+        variables.put(ERROR_INFORMATION, ex.getProperty(ERROR_INFORMATION, String.class));
+        variables.put(ERROR_CODE, ex.getProperty(ERROR_CODE, String.class));
+        variables.put(ERROR_DESCRIPTION, ex.getProperty(ERROR_DESCRIPTION, String.class));
     }
 
 }
